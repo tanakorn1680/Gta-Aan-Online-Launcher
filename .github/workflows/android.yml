@@ -25,7 +25,7 @@ jobs:
 
       - name: Install Android build tools
         run: |
-          sdkmanager "platform-tools" \
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0" \
             "cmake;3.22.1" \
