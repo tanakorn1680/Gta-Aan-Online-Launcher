@@ -23,9 +23,10 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - name: Install Android build tools
+      - name: Install Android SDK components
         run: |
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" \
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0" \
             "cmake;3.22.1" \
@@ -37,7 +38,7 @@ jobs:
           chmod +x ./gradlew
 
       - name: Build release APK
-        run: ./gradlew --no-daemon --stacktrace --info assembleRelease
+        run: ./gradlew --no-daemon --stacktrace assembleRelease
 
       - name: Verify APK signature
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/release/GtaSanOnlineLauncher.apk
