@@ -1,4 +1,4 @@
-# Gta San Online Launcher
+# GTA Aan Online Launcher
 
 SA-MP Mobile Launcher สำหรับ Android  
 Fork จาก Alyn SA-MP Mobile v17.x
@@ -10,7 +10,7 @@ Fork จาก Alyn SA-MP Mobile v17.x
 ## Build via GitHub Actions
 1. Fork repo นี้ไปที่ GitHub account ของคุณ
 2. Push code → GitHub Actions จะ build อัตโนมัติ
-3. ไปที่ **Actions** tab → เลือก workflow ล่าสุด → download `GtaSanOnlineLauncher-release`
+3. ไปที่ **Actions** tab → เลือก workflow ล่าสุด → download `GtaAanOnline-release`
 
 ## Build locally
 ```
