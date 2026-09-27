@@ -49,5 +49,7 @@
     <!-- Missing layout colors -->
     <color name="grey">#888888</color>
     <color name="backgroundColor">#0D0D0D</color>
+    <color name="faq">#FF6B00</color>
+    <color name="dialog_color_1">#1A1A1A</color>
 </resources>
 <!-- Missing colors from drawables/layouts -->
