@@ -37,6 +37,15 @@ jobs:
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew
 
+      - name: Fix CMakeLists - add cmake_minimum_required to all sub files
+        run: |
+          find app/src/main/cpp -name "CMakeLists.txt" | while read f; do
+            if ! grep -q "cmake_minimum_required" "$f"; then
+              sed -i '1s|^|cmake_minimum_required(VERSION 3.22.1)\n|' "$f"
+              echo "Fixed: $f"
+            fi
+          done
+
       - name: Build release APK
         run: ./gradlew --no-daemon --stacktrace assembleRelease
 
