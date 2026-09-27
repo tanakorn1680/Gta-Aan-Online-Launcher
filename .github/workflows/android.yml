@@ -46,6 +46,11 @@ jobs:
             fi
           done
 
+      - name: Remove duplicate old Java package (com/nativo/rpg)
+        run: |
+          rm -rf app/src/main/java/com/nativo
+          echo "Removed com/nativo/rpg"
+
       - name: Build release APK
         run: ./gradlew --no-daemon --stacktrace assembleRelease
 
