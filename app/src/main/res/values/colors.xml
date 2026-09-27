@@ -40,4 +40,14 @@
     <color name="dark_grey">#1A1A1A</color>
     <color name="security_icon">#FF6B00</color>
     <color name="accent_blue">#1A6FFF</color>
+    <!-- Missing nav icon colors -->
+    <color name="home">#FF6B00</color>
+    <color name="play">#FF6B00</color>
+    <color name="settings">#FF6B00</color>
+    <color name="support">#FF6B00</color>
+    <color name="security">#FF6B00</color>
+    <!-- Missing layout colors -->
+    <color name="grey">#888888</color>
+    <color name="backgroundColor">#0D0D0D</color>
 </resources>
+<!-- Missing colors from drawables/layouts -->
