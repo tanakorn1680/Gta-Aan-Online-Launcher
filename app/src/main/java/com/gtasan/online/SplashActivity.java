@@ -102,7 +102,7 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
         btnForceUpdate = findViewById(R.id.btnForceUpdate);
         statusPill = findViewById(R.id.statusPill);
 
-        Toast.makeText(this, "GTA Aan Online v" + BuildConfig.VERSION_NAME, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Nativo SA-MP Mobile v" + BuildConfig.VERSION_NAME, Toast.LENGTH_SHORT).show();
 
         if (EasyPermissions.hasPermissions(this, permissions)) {
             startApp();
@@ -276,7 +276,7 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
                 // com "App server is down" sempre que essa segunda chamada falhava por qualquer
                 // motivo, mesmo com o resto funcionando.
                 {
-                    if (gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
+                    if (false && gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
                         try {
                             new AlertDialog.Builder(SplashActivity.this)
                                     .setTitle("Atualização:").setMessage("Atualização do aplicativo necessária! Toque em 'Atualizar' e baixe a versão mais recente pelo site.")
