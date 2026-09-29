@@ -51,12 +51,12 @@ import com.gtasan.online.ui.fragment.SupportPageFragment;
 
 @Obfuscate
 public class Utils {
-    public static String copyright = "Copyright © GTA Aan Online";
-    public static String web = "https://raw.githubusercontent.com/tanakorn1680/Gta-Aan-Online-Launcher/main/";
-    public static String github = "https://github.com/tanakorn1680";
+    public static String copyright = "Copyright © NativoRPG";
+    public static String web = "https://raw.githubusercontent.com/east9-777/ATT-APK-NATIVO/main/";
+    public static String github = "https://github.com/east9-777";
     public static String update = web + "update.json";
     // TODO: coloque aqui o link de convite real do seu servidor Discord (ex: https://discord.gg/xxxxxxx)
-    public static String discord = "https://discord.gg/gtaanonline";
+    public static String discord = "https://discord.gg/SEU_CONVITE";
     public static String changelog = web + "changelog.txt";
     public static String hostedServersFileStr = web + "servers.json";
     public static String bannedServersFileStr = web + "banned.json";
