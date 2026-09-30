@@ -173,8 +173,6 @@ public class UpdateService extends Service {
 
                         if (!isGamePackageExists()) {
                             mGameStatus = UpdateActivity.GameStatus.GameUpdateRequired;
-                        } else if (isGameUpdateExists() && !BuildConfig.DEBUG) {
-                            mGameStatus = UpdateActivity.GameStatus.GameUpdateRequired;
                         } else if (isGameFilesUpdateExists()) {
                             mGameStatus = UpdateActivity.GameStatus.GameFilesUpdateRequired;
                         } else {
