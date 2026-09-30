@@ -111,6 +111,42 @@
 
     </LinearLayout>
 
+    <!-- Server address field (HOST:PORT), top row, right of the nickname box -->
+    <LinearLayout
+        android:id="@+id/serverAddressArea"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@id/nicknameArea"
+        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginTop="@dimen/_14sdp"
+        android:background="@drawable/server_picker_bg"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/_46sdp"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/_14sdp"
+        android:paddingTop="@dimen/_10sdp"
+        android:paddingEnd="@dimen/_14sdp"
+        android:paddingBottom="@dimen/_10sdp">
+
+        <EditText
+            android:id="@+id/serverField"
+            android:layout_width="@dimen/_150sdp"
+            android:layout_height="wrap_content"
+            android:background="@null"
+            android:fontFamily="@font/montserrat_bold"
+            android:hint="@string/host_port"
+            android:imeOptions="actionDone"
+            android:inputType="textUri"
+            android:maxLength="64"
+            android:maxLines="1"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#99FFFFFF"
+            android:textSize="@dimen/_11ssp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
     <!-- Botao do topo direito: configuracoes -->
     <LinearLayout
         android:id="@+id/topRightBar"

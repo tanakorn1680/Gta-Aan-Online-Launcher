@@ -47,10 +47,8 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
 
     private int retryAttempt;
 
-    // TODO: troque pelo IP/porta definitivos do seu servidor quando tiver.
-    private static final String SERVER1_HOST = "172.96.140.62";
-    private static final String SERVER1_PORT = "3148";
-    private static final String SERVER1_NAME = "Nativo RPG";
+    private static final String SERVER1_NAME = "Gta San Online";
+    private static final String DEFAULT_PORT = "7777";
 
     // TODO: preencha com os links reais das redes sociais.
     private static final String DISCORD_URL = "";
@@ -67,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
     private boolean settingsOpen = false;
 
     private android.widget.EditText nicknameField;
+    private android.widget.EditText serverField;
 
     private View chooseServerContainer;
     private TextView server1PlayersText;
@@ -144,6 +143,10 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
         String savedNick = getSharedPreferences("samp_settings", Context.MODE_PRIVATE).getString("nick_name", "");
         nicknameField.setText(savedNick);
 
+        serverField = findViewById(R.id.serverField);
+        serverField.setText(getSharedPreferences("launcher_ui", Context.MODE_PRIVATE)
+                .getString("server_address", ""));
+
         btnDiscord.setOnClickListener(v -> openLink(DISCORD_URL));
         btnYoutube.setOnClickListener(v -> openLink(YOUTUBE_URL));
         btnInstagram.setOnClickListener(v -> openLink(INSTAGRAM_URL));
@@ -174,6 +177,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
     protected void onPause() {
         super.onPause();
         playersRefreshHandler.removeCallbacks(playersRefreshRunnable);
+        saveServerAddress();
     }
 
     private void openLink(String url) {
@@ -189,15 +193,57 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
     }
 
     /**
+     * Reads the HOST:PORT field. Returns {host, port}, or null when the field is
+     * empty or invalid. A bare host (no ":port") uses the default SA-MP port 7777.
+     */
+    private String[] parseServerAddress() {
+        String text = serverField.getText() != null ? serverField.getText().toString().trim() : "";
+        if (text.isEmpty() || text.contains(" ")) return null;
+
+        String host = text;
+        String port = DEFAULT_PORT;
+        int colon = text.lastIndexOf(':');
+        if (colon >= 0) {
+            host = text.substring(0, colon);
+            port = text.substring(colon + 1);
+        }
+        if (host.isEmpty()) return null;
+
+        try {
+            int p = Integer.parseInt(port);
+            if (p < 1 || p > 65535) return null;
+            port = String.valueOf(p);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return new String[]{host, port};
+    }
+
+    private void saveServerAddress() {
+        if (serverField == null || serverField.getText() == null) return;
+        getSharedPreferences("launcher_ui", Context.MODE_PRIVATE).edit()
+                .putString("server_address", serverField.getText().toString().trim()).apply();
+    }
+
+    /**
      * Consulta o servidor 1 em segundo plano e atualiza o contador de players
      * que fica no card ao lado do botao de conectar (ex: "10/200") e, se o
      * painel de escolha de servidor estiver com as views infladas, tambem
      * atualiza o card do servidor 1 la dentro.
      */
     private void refreshPlayerCount() {
+        final String[] addr = parseServerAddress();
+        if (addr == null) {
+            playersOnlineText.setText(R.string.players_online_unknown);
+            server1PlayersText.setText(R.string.players_count_unknown);
+            return;
+        }
+        final String host = addr[0];
+        final int port = Integer.parseInt(addr[1]);
+
         new Thread(() -> {
             try {
-                SampQuery query = new SampQuery(SERVER1_HOST, Integer.parseInt(SERVER1_PORT));
+                SampQuery query = new SampQuery(host, port);
                 if (query.isOnline()) {
                     String[] info = query.getInfo();
                     if (info != null) {
@@ -276,7 +322,15 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
             return;
         }
 
-        if (Utils.isServerBanned(SERVER1_HOST, SERVER1_PORT)) {
+        String[] addr = parseServerAddress();
+        if (addr == null) {
+            Toast.makeText(this, "Please enter a valid server address (IP:PORT).", Toast.LENGTH_LONG).show();
+            return;
+        }
+        String host = addr[0];
+        String port = addr[1];
+
+        if (Utils.isServerBanned(host, port)) {
             Toast.makeText(this, "This server is banned on this launcher.", Toast.LENGTH_LONG).show();
             return;
         }
@@ -285,11 +339,12 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
                 .putString("nick_name", nickname).apply();
 
         SharedPreferences.Editor edit = getSharedPreferences("samp_server", Context.MODE_PRIVATE).edit();
-        edit.putString("host", SERVER1_HOST);
-        edit.putString("port", SERVER1_PORT);
+        edit.putString("host", host);
+        edit.putString("port", port);
         edit.putString("password", "");
         edit.apply();
 
+        saveServerAddress();
         Utils.saveSettings(this);
 
         try {
