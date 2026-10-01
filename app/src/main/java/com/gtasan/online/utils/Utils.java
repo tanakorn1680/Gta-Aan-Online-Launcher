@@ -52,7 +52,7 @@ import com.gtasan.online.ui.fragment.SupportPageFragment;
 @Obfuscate
 public class Utils {
     public static String copyright = "Copyright © Gta San Online";
-    public static String web = "https://raw.githubusercontent.com/east9-777/ATT-APK-NATIVO/main/";
+    public static String web = "https://raw.githubusercontent.com/tanakorn1680/Gta-Aan-Online-Launcher/main/remote/";
     public static String github = "https://github.com/east9-777";
     public static String update = web + "update.json";
     // TODO: coloque aqui o link de convite real do seu servidor Discord (ex: https://discord.gg/xxxxxxx)
