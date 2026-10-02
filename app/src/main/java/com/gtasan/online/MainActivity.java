@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
     private android.widget.ProgressBar server1Progress;
     private boolean chooseServerOpen = false;
 
+    private final Runnable addressChangedRunnable = this::refreshPlayerCount;
     private final Runnable playersRefreshRunnable = new Runnable() {
         @Override
         public void run() {
@@ -146,6 +147,15 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
         serverField = findViewById(R.id.serverField);
         serverField.setText(getSharedPreferences("launcher_ui", Context.MODE_PRIVATE)
                 .getString("server_address", ""));
+        serverField.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(android.text.Editable s) {
+                // Re-query shortly after typing stops instead of waiting for the next 15s tick.
+                playersRefreshHandler.removeCallbacks(addressChangedRunnable);
+                playersRefreshHandler.postDelayed(addressChangedRunnable, 800);
+            }
+        });
 
         btnDiscord.setOnClickListener(v -> openLink(DISCORD_URL));
         btnYoutube.setOnClickListener(v -> openLink(YOUTUBE_URL));
@@ -177,6 +187,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
     protected void onPause() {
         super.onPause();
         playersRefreshHandler.removeCallbacks(playersRefreshRunnable);
+        playersRefreshHandler.removeCallbacks(addressChangedRunnable);
         saveServerAddress();
     }
 
@@ -240,6 +251,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
         }
         final String host = addr[0];
         final int port = Integer.parseInt(addr[1]);
+        final String key = host + ":" + port;
 
         new Thread(() -> {
             try {
@@ -251,6 +263,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
                         int current = parsePlayersOrZero(info[1]);
                         int max = parsePlayersOrZero(info[2]);
                         mainHandler.post(() -> {
+                            if (!isCurrentAddress(key)) return; // user changed the address meanwhile
                             playersOnlineText.setText(text);
                             server1PlayersText.setText(text);
                             if (max > 0) {
@@ -262,17 +275,24 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
                     }
                 }
                 mainHandler.post(() -> {
+                    if (!isCurrentAddress(key)) return;
                     playersOnlineText.setText(R.string.players_online_unknown);
                     server1PlayersText.setText(R.string.players_count_unknown);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 mainHandler.post(() -> {
+                    if (!isCurrentAddress(key)) return;
                     playersOnlineText.setText(R.string.players_online_unknown);
                     server1PlayersText.setText(R.string.players_count_unknown);
                 });
             }
         }).start();
+    }
+
+    private boolean isCurrentAddress(String key) {
+        String[] now = parseServerAddress();
+        return now != null && key.equals(now[0] + ":" + now[1]);
     }
 
     private int parsePlayersOrZero(String value) {
@@ -353,6 +373,7 @@ public class MainActivity extends AppCompatActivity implements MaxAdListener, Ma
             startActivity(intent);
         } catch (Exception e) {
             e.printStackTrace();
+            Toast.makeText(this, "Could not start the game: " + e, Toast.LENGTH_LONG).show();
         }
     }
 

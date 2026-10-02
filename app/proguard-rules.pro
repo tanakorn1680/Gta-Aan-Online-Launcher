@@ -2,12 +2,12 @@
 -keep class com.rockstargames.gtasa.* { *; }
 -keep class com.wardrumstudios.utils.* { *; }
 
--keep class com.nativo.rpg.game.* { *; }
--keep class com.nativo.rpg.game.ui.* { *; }
--keep class com.nativo.rpg.game.ui.widgets.* { *; }
--keep class com.nativo.rpg.game.ui.widgets.adapter.* { *; }
+-keep class com.gtasan.online.game.* { *; }
+-keep class com.gtasan.online.game.ui.* { *; }
+-keep class com.gtasan.online.game.ui.widgets.* { *; }
+-keep class com.gtasan.online.game.ui.widgets.adapter.* { *; }
 
--keep class com.nativo.rpg.br.utils.SignatureChecker { *; }
+-keep class com.gtasan.online.utils.SignatureChecker { *; }
 
 # for minify
 -dontwarn javax.servlet.**

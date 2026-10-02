@@ -91,7 +91,7 @@
         </activity>
 
         <activity
-            android:name="com.nativo.rpg.game.SAMP"
+            android:name="com.gtasan.online.game.SAMP"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
             android:exported="true"
             android:launchMode="singleTask"
