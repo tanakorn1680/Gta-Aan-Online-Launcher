@@ -15,10 +15,7 @@ target_sources(${PROJECT_NAME} INTERFACE
 
 set(glosshook_path "${CMAKE_CURRENT_SOURCE_DIR}/lib/${ANDROID_ABI}/libGlossHook.a")
 add_library(GlossHook STATIC IMPORTED)
-set_target_properties(GlossHook PROPERTIES
-    IMPORTED_LOCATION ${glosshook_path}
-    MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
-    MAP_IMPORTED_CONFIG_MINSIZEREL Release)
+set_target_properties(GlossHook PROPERTIES IMPORTED_LOCATION ${glosshook_path})
 
 target_link_libraries(${PROJECT_NAME} INTERFACE GlossHook)
 

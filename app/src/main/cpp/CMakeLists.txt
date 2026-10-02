@@ -1,25 +1,6 @@
-project(Memory)
+cmake_minimum_required(VERSION 3.22.1)
 
-file(GLOB INCLUDE_FILES
-        include/*.h)
+project(Alyn_SAMPMOBILE)
 
-file(GLOB SOURCE_FILES
-        include/*.cpp)
-
-add_library(${PROJECT_NAME} INTERFACE)
-
-target_sources(${PROJECT_NAME} INTERFACE
-    ${INCLUDE_FILES}
-    ${SOURCE_FILES})
-
-set(glosshook_path "${CMAKE_CURRENT_SOURCE_DIR}/lib/${ANDROID_ABI}/libGlossHook.a")
-add_library(GlossHook STATIC IMPORTED)
-set_target_properties(GlossHook PROPERTIES
-    IMPORTED_LOCATION ${glosshook_path}
-    MAP_IMPORTED_CONFIG_RELWITHDEBINFO Release
-    MAP_IMPORTED_CONFIG_MINSIZEREL Release)
-
-target_link_libraries(${PROJECT_NAME} INTERFACE GlossHook)
-
-target_include_directories(${PROJECT_NAME} INTERFACE
-    "${CMAKE_CURRENT_SOURCE_DIR}/include")
+add_subdirectory(Alyn_SAMPMOBILE)
+add_subdirectory(SocialClub)
