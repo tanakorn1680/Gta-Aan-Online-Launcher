@@ -46,7 +46,7 @@ public:
 			spdlog::error("GetSymbol: Invalid handle! Handle: 0x{:X} Name: {}", reinterpret_cast<uintptr_t>(handle), name);
 			return 0;
 		}
-		uintptr_t symbolAddr = GlossSymbol(handle, name);
+		uintptr_t symbolAddr = GlossSymbol(handle, name, nullptr);
 		if (!symbolAddr) {
 			spdlog::error("GetSymbol: Invalid address! Address: 0x{:X} Name: {}", symbolAddr, name);
 			return 0;

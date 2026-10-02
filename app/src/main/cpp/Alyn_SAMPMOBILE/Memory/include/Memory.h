@@ -75,9 +75,9 @@ inline static void* hook(const char* symbol, void* hook_func, void** orig_func)
 inline static void hook(void* addr, void* hook_func, void** orig_func, bool isShortFunc = false)
 {
 #ifdef __aarch64__
-	GlossHookAddr(addr, hook_func, orig_func, isShortFunc, $ARM64);
+	GlossHookAddr(addr, hook_func, orig_func, isShortFunc, I_ARM64);
 #else
-	GlossHookAddr((void*) (addr), (void*) (hook_func), (void**) (orig_func), isShortFunc, $THUMB);
+	GlossHookAddr((void*) (addr), (void*) (hook_func), (void**) (orig_func), isShortFunc, I_THUMB);
 #endif
 
 }
@@ -86,9 +86,9 @@ inline static void hook(void* addr, void* hook_func, void** orig_func, bool isSh
 static void hookBL(void* addr, void* hook_func, void** orig_func)
 {
 #ifdef __aarch64__
-	GlossHookBranchBL((void*) (addr), (void*) (hook_func), (void**) (orig_func), $ARM64);
+	GlossHookBranchBL((void*) (addr), (void*) (hook_func), (void**) (orig_func), I_ARM64);
 #else
-	GlossHookBranchBL((void*) (addr), (void*) (hook_func), (void**) (orig_func), $THUMB);
+	GlossHookBranchBL((void*) (addr), (void*) (hook_func), (void**) (orig_func), I_THUMB);
 #endif
 }
 
