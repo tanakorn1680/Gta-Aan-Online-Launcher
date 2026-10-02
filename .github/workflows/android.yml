@@ -37,6 +37,32 @@ jobs:
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew
 
+      - name: Restore project files missing from this repo (native libs, images, fonts, assets)
+        run: |
+          UP_SHA=824260b19bd3fb473b44ee5104d237e300733944
+          curl -fL --retry 3 -o /tmp/upstream.zip \
+            "https://codeload.github.com/east9-777/Nativo_ApkSamp/zip/$UP_SHA"
+          mkdir -p /tmp/upstream
+          unzip -q /tmp/upstream.zip -d /tmp/upstream
+          UP="$(ls -d /tmp/upstream/*/)"
+          UP="${UP%/}"
+          rm -rf "$UP/.git" "$UP/.github" "$UP/README.md" "$UP/app/src/main/java/com/nativo"
+          # copy only files this repo does not have (never overwrites your own edits)
+          (cd "$UP" && find . -type f) | while IFS= read -r f; do
+            if [ ! -e "$f" ]; then
+              mkdir -p "$(dirname "$f")"
+              cp "$UP/$f" "$f"
+            fi
+          done
+          # drop placeholder XMLs that now have a real image/font with the same name
+          for x in app/src/main/res/drawable/*.xml app/src/main/res/font/*.xml; do
+            s="${x%.xml}"
+            for e in png jpg jpeg webp ttf otf; do
+              if [ -f "$s.$e" ]; then rm -f "$x"; echo "Removed placeholder: $x"; break; fi
+            done
+          done
+          ls -la app/src/main/jniLibs/arm64-v8a/libGTASA.so app/src/main/jniLibs/armeabi-v7a/libGTASA.so
+
       - name: Fix CMakeLists - add cmake_minimum_required to all sub files
         run: |
           find app/src/main/cpp -name "CMakeLists.txt" | while read f; do
