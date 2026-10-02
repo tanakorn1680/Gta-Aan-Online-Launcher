@@ -37,7 +37,8 @@ jobs:
           sed -i 's/\r$//' ./gradlew
           chmod +x ./gradlew
 
-      - name: Restore project files missing from this repo (native libs, images, fonts, assets)
+      - name: Fallback - restore files missing from this repo (skipped once the repo is complete)
+        if: hashFiles('app/src/main/jniLibs/arm64-v8a/libGTASA.so') == ''
         run: |
           UP_SHA=824260b19bd3fb473b44ee5104d237e300733944
           curl -fL --retry 3 -o /tmp/upstream.zip \
