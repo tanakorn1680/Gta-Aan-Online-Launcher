@@ -78,8 +78,81 @@ jobs:
           rm -rf app/src/main/java/com/nativo
           echo "Removed com/nativo/rpg"
 
+      - name: Verify native setup (fails fast with a clear reason)
+        run: |
+          OK_SHA64=1850e00f45189e57ac6695c3ffdd349846a9614fc340c1efec3a9b0ba8dd6804
+          OK_SHA32=307ef4335db5f541c78032c44f6bb6ed6bf099a60e9bf25eb78b400a11cc5ef3
+          L=app/src/main/cpp/Alyn_SAMPMOBILE/Memory/lib
+          fail=0
+          S="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          echo "### Native setup check" >> "$S"
+
+          check_lib() {  # abi expected_sha
+            f="$L/$1/libGlossHook.a"
+            if [ ! -f "$f" ]; then echo "- :x: $1 libGlossHook.a is missing" >> "$S"; echo "::error::$f is missing"; fail=1; return; fi
+            got=$(sha256sum "$f" | cut -d' ' -f1); size=$(stat -c %s "$f")
+            if [ "$got" = "$2" ]; then echo "- :white_check_mark: $1 libGlossHook.a = v1.9.2 ($size bytes)" >> "$S"
+            else
+              echo "- :x: $1 libGlossHook.a is NOT v1.9.2 (size $size bytes; v1.9.2 is 262248 arm64 / 229644 armv7)" >> "$S"
+              echo "::error::$f is not GlossHook v1.9.2 (size $size). 1.9.5 (~296 KB) fails to link with NDK r25; 1.9.0 (~683 KB) crashes on Android 16. Re-commit the v1.9.2 files."
+              fail=1
+            fi
+          }
+          check_lib arm64-v8a "$OK_SHA64"
+          check_lib armeabi-v7a "$OK_SHA32"
+
+          if head -5 app/src/main/cpp/CMakeLists.txt | grep -q "project(Memory)"; then
+            echo "- :x: app/src/main/cpp/CMakeLists.txt contains the Memory file (wrong top-level file)" >> "$S"
+            echo "::error::app/src/main/cpp/CMakeLists.txt is the wrong file (project(Memory)). It must contain project(Alyn_SAMPMOBILE) and add_subdirectory(Alyn_SAMPMOBILE)."
+            fail=1
+          elif ! grep -q "add_subdirectory(Alyn_SAMPMOBILE)" app/src/main/cpp/CMakeLists.txt; then
+            echo "- :x: top-level CMakeLists.txt does not add Alyn_SAMPMOBILE" >> "$S"
+            echo "::error::top-level CMakeLists.txt does not contain add_subdirectory(Alyn_SAMPMOBILE)"
+            fail=1
+          else
+            echo "- :white_check_mark: top-level CMakeLists.txt is correct" >> "$S"
+          fi
+
+          if grep -rIn "c++_shared\|ANDROID_STL" app/build.gradle --include=build.gradle >/dev/null 2>&1; then
+            echo "- :warning: build.gradle sets the C++ STL (c++_shared / ANDROID_STL). The original has none; remove it." >> "$S"
+            echo "::warning::build.gradle sets ANDROID_STL / c++_shared. The original project uses the default; remove it unless you know you need it."
+          else
+            echo "- :white_check_mark: default C++ STL" >> "$S"
+          fi
+
+          if grep -q 'ndkVersion "25.1.8937393"' app/build.gradle; then
+            echo "- :white_check_mark: NDK 25.1.8937393" >> "$S"
+          else
+            echo "- :warning: ndkVersion in build.gradle is not 25.1.8937393" >> "$S"
+            echo "::warning::ndkVersion in app/build.gradle is not 25.1.8937393 (the version this setup was verified with)"
+          fi
+
+          [ "$fail" = 0 ] || exit 1
+
       - name: Build release APK
-        run: ./gradlew --no-daemon --stacktrace assembleRelease
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon --stacktrace assembleRelease 2>&1 | tee build.log
+
+      - name: Summarize build errors (shown at the top of the run page)
+        if: failure()
+        run: |
+          S="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          [ -f build.log ] || { echo "### Build failed before Gradle produced a log (see the red step)" >> "$S"; exit 0; }
+          {
+            echo "### Build failed - the real error"
+            first=$(grep -n -m1 -E "(^|[^a-zA-Z])ld(\.lld)?: error|: error:|^FAILED:" build.log | cut -d: -f1)
+            if [ -n "$first" ]; then
+              echo '```'
+              sed -n "${first},$((first+25))p" build.log | cut -c1-260
+              echo '```'
+            else
+              echo "No compiler/linker error line found. Gradle summary:"
+              echo '```'
+              grep -n -A6 "What went wrong" build.log | cut -c1-260 | head -30
+              echo '```'
+            fi
+          } >> "$S"
 
       - name: Verify APK signature
         run: $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/release/GtaSanOnlineLauncher.apk
