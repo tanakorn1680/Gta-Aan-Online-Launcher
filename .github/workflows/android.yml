@@ -78,29 +78,50 @@ jobs:
           rm -rf app/src/main/java/com/nativo
           echo "Removed com/nativo/rpg"
 
-      - name: Verify native setup (fails fast with a clear reason)
+      - name: Ensure native setup (auto-fixes known problems, fails fast otherwise)
         run: |
-          OK_SHA64=1850e00f45189e57ac6695c3ffdd349846a9614fc340c1efec3a9b0ba8dd6804
-          OK_SHA32=307ef4335db5f541c78032c44f6bb6ed6bf099a60e9bf25eb78b400a11cc5ef3
-          L=app/src/main/cpp/Alyn_SAMPMOBILE/Memory/lib
-          fail=0
           S="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          M=app/src/main/cpp/Alyn_SAMPMOBILE/Memory
+          GLOSS_TAG=v1.9.2
+          SHA_H=96687ccec8314d735f7223a049285e5c2854f17b923673d1aee97535b298eab8
+          SHA_64=1850e00f45189e57ac6695c3ffdd349846a9614fc340c1efec3a9b0ba8dd6804
+          SHA_32=307ef4335db5f541c78032c44f6bb6ed6bf099a60e9bf25eb78b400a11cc5ef3
+          fail=0
           echo "### Native setup check" >> "$S"
 
-          check_lib() {  # abi expected_sha
-            f="$L/$1/libGlossHook.a"
-            if [ ! -f "$f" ]; then echo "- :x: $1 libGlossHook.a is missing" >> "$S"; echo "::error::$f is missing"; fail=1; return; fi
-            got=$(sha256sum "$f" | cut -d' ' -f1); size=$(stat -c %s "$f")
-            if [ "$got" = "$2" ]; then echo "- :white_check_mark: $1 libGlossHook.a = v1.9.2 ($size bytes)" >> "$S"
-            else
-              echo "- :x: $1 libGlossHook.a is NOT v1.9.2 (size $size bytes; v1.9.2 is 262248 arm64 / 229644 armv7)" >> "$S"
-              echo "::error::$f is not GlossHook v1.9.2 (size $size). 1.9.5 (~296 KB) fails to link with NDK r25; 1.9.0 (~683 KB) crashes on Android 16. Re-commit the v1.9.2 files."
-              fail=1
-            fi
-          }
-          check_lib arm64-v8a "$OK_SHA64"
-          check_lib armeabi-v7a "$OK_SHA32"
+          sha() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
 
+          # 1) client code adapted to the GlossHook 1.9.x header (safe to repeat)
+          sed -i 's/\$ARM64/I_ARM64/g; s/\$THUMB/I_THUMB/g' "$M/include/Memory.h"
+          sed -i 's/GlossSymbol(handle, name)/GlossSymbol(handle, name, nullptr)/' "$M/include/SymUtils.h"
+
+          # 2) GlossHook header + libraries must be exactly v1.9.2
+          need=0
+          [ "$(sha $M/include/Gloss.h)" = "$SHA_H" ] || need=1
+          [ "$(sha $M/lib/arm64-v8a/libGlossHook.a)" = "$SHA_64" ] || need=1
+          [ "$(sha $M/lib/armeabi-v7a/libGlossHook.a)" = "$SHA_32" ] || need=1
+          if [ "$need" = 1 ]; then
+            echo "GlossHook files in the repo are not v1.9.2 - fetching the official $GLOSS_TAG release"
+            if ! curl -fL --retry 3 -o /tmp/gloss.zip "https://codeload.github.com/XMDS/GlossHook/zip/refs/tags/$GLOSS_TAG"; then
+              echo "- :x: could not download GlossHook $GLOSS_TAG" >> "$S"
+              echo "::error::Could not download the official GlossHook $GLOSS_TAG release (network problem). Re-run the workflow."
+              exit 1
+            fi
+            mkdir -p /tmp/gloss && unzip -q -o /tmp/gloss.zip -d /tmp/gloss
+            G="$(ls -d /tmp/gloss/*/GlossHook | head -1)"
+            mkdir -p "$M/lib/arm64-v8a" "$M/lib/armeabi-v7a" "$M/include"
+            cp "$G/include/Gloss.h"             "$M/include/Gloss.h"
+            cp "$G/lib/ARM64/libGlossHook.a"    "$M/lib/arm64-v8a/libGlossHook.a"
+            cp "$G/lib/ARM/libGlossHook.a"      "$M/lib/armeabi-v7a/libGlossHook.a"
+            echo "- :wrench: GlossHook header/libs in the repo were not v1.9.2 - replaced with the official $GLOSS_TAG release for this build" >> "$S"
+          fi
+          for pair in "include/Gloss.h:$SHA_H" "lib/arm64-v8a/libGlossHook.a:$SHA_64" "lib/armeabi-v7a/libGlossHook.a:$SHA_32"; do
+            f="$M/${pair%%:*}"
+            if [ "$(sha "$f")" = "${pair##*:}" ]; then echo "- :white_check_mark: ${pair%%:*} = GlossHook $GLOSS_TAG" >> "$S"
+            else echo "- :x: ${pair%%:*} is still not GlossHook $GLOSS_TAG" >> "$S"; echo "::error::$f is not GlossHook $GLOSS_TAG after the fix attempt"; fail=1; fi
+          done
+
+          # 3) other known pitfalls
           if head -5 app/src/main/cpp/CMakeLists.txt | grep -q "project(Memory)"; then
             echo "- :x: app/src/main/cpp/CMakeLists.txt contains the Memory file (wrong top-level file)" >> "$S"
             echo "::error::app/src/main/cpp/CMakeLists.txt is the wrong file (project(Memory)). It must contain project(Alyn_SAMPMOBILE) and add_subdirectory(Alyn_SAMPMOBILE)."
@@ -112,21 +133,18 @@ jobs:
           else
             echo "- :white_check_mark: top-level CMakeLists.txt is correct" >> "$S"
           fi
-
-          if grep -rIn "c++_shared\|ANDROID_STL" app/build.gradle --include=build.gradle >/dev/null 2>&1; then
+          if grep -q "c++_shared\|ANDROID_STL" app/build.gradle; then
             echo "- :warning: build.gradle sets the C++ STL (c++_shared / ANDROID_STL). The original has none; remove it." >> "$S"
-            echo "::warning::build.gradle sets ANDROID_STL / c++_shared. The original project uses the default; remove it unless you know you need it."
+            echo "::warning::build.gradle sets ANDROID_STL / c++_shared. The original project uses the default."
           else
             echo "- :white_check_mark: default C++ STL" >> "$S"
           fi
-
           if grep -q 'ndkVersion "25.1.8937393"' app/build.gradle; then
             echo "- :white_check_mark: NDK 25.1.8937393" >> "$S"
           else
             echo "- :warning: ndkVersion in build.gradle is not 25.1.8937393" >> "$S"
-            echo "::warning::ndkVersion in app/build.gradle is not 25.1.8937393 (the version this setup was verified with)"
+            echo "::warning::ndkVersion in app/build.gradle is not 25.1.8937393"
           fi
-
           [ "$fail" = 0 ] || exit 1
 
       - name: Build release APK
