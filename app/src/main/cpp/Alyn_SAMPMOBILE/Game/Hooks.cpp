@@ -2,6 +2,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
+#include <unordered_map>
+#include <mutex>
 #include <EGL/egl.h>
 
 #include "Game.h"
@@ -258,6 +260,9 @@ DECL_HOOK(RwTexture *, CTxdStore_TxdStoreFindCB, const char *texture_name)
 // SortEntries quebra com SIGSEGV. Aqui o formato pedido e trocado pelo que
 // realmente existe em texdb/<nome>/, e tudo e registrado no log.
 // ---------------------------------------------------------------------------
+static std::unordered_map<void *, std::string> g_texdbNames;
+static std::mutex g_texdbNamesMutex;
+
 static bool texdbHasFormat(const char *name, const char *ext)
 {
 	std::string base = std::string(Client::gameDir()) + "texdb/" + name + "/" + name + "." + ext;
@@ -322,12 +327,35 @@ DECL_HOOK(void *, TextureDatabaseRuntime_Load, const char *name, bool fullyLoad,
 		format = firstPresent;
 	}
 
-	return TextureDatabaseRuntime_Load(name, fullyLoad, format);
+	void *db = TextureDatabaseRuntime_Load(name, fullyLoad, format);
+	{
+		std::lock_guard<std::mutex> lock(g_texdbNamesMutex);
+		g_texdbNames[db] = std::string(name) + " (format " + std::to_string(format) + ")";
+	}
+	return db;
+}
+
+// Diagnostico: antes de cada textura completa carregada, registra de qual banco
+// e qual indice. A ultima linha "LoadFullTexture" antes do crash identifica
+// exatamente o banco/entrada que quebra o RLEDecompress.
+DECL_HOOK(void *, TextureDatabaseRuntime_LoadFullTexture, void *self, unsigned int index)
+{
+	std::string who = "unknown";
+	{
+		std::lock_guard<std::mutex> lock(g_texdbNamesMutex);
+		auto it = g_texdbNames.find(self);
+		if (it != g_texdbNames.end())
+		{
+			who = it->second;
+		}
+	}
+	spdlog::info("TexDB LoadFullTexture: db={} index={}", who, index);
+	return TextureDatabaseRuntime_LoadFullTexture(self, index);
 }
 
 DECL_HOOK(int, CGame_InitialiseRenderWare)
 {
-	spdlog::info("BUILD MARKER: texdb-fallback-v3");
+	spdlog::info("BUILD MARKER: texdb-diag-v4");
 	spdlog::info("Initializing samp texture database...");
 
 	int result = CGame_InitialiseRenderWare();
@@ -1028,6 +1056,7 @@ void Hooks::install()
 	HOOK("_Z15RwFrameAddChildP7RwFrameS0_", RwFrameAddChild);
 	HOOK("_Z13RLEDecompressPhjPKhjj", RLEDecompress);
 	HOOK("_ZN22TextureDatabaseRuntime4LoadEPKcb21TextureDatabaseFormat", TextureDatabaseRuntime_Load);
+	HOOK("_ZN22TextureDatabaseRuntime15LoadFullTextureEj", TextureDatabaseRuntime_LoadFullTexture);
 	HOOK("_Z23RwResourcesFreeResEntryP10RwResEntry", RwResourcesFreeResEntry);
 	HOOK("_ZN22TextureDatabaseRuntime8GetEntryEPKcRb", TextureDatabaseRuntime_GetEntry);
 	HOOK("_ZN10CPlayerPed29GetPlayerInfoForThisPlayerPedEv", GetPlayerInfoForThisPlayerPed);
