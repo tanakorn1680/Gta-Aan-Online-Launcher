@@ -664,14 +664,14 @@ DECL_HOOK(int, RwFrameAddChild, int a1, int a2)
 	return RwFrameAddChild(a1, a2);
 }
 
-DECL_HOOK(int, RLEDecompress, int a1, unsigned int a2, const char *a3, unsigned int a4, unsigned int a5)
+DECL_HOOK(int, RLEDecompress, uint8_t *dst, unsigned int dstSize, const uint8_t *src, unsigned int srcSize, unsigned int a5)
 {
-	if (!a3)
+	if (!dst || !src)
 	{
 		spdlog::warn("RLEDecompress: Prevent crash");
 		return 0;
 	}
-	return RLEDecompress(a1, a2, a3, a4, a5);
+	return RLEDecompress(dst, dstSize, src, srcSize, a5);
 }
 
 DECL_HOOK(int, RwResourcesFreeResEntry, int a1)
