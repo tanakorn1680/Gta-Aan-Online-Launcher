@@ -1,5 +1,6 @@
 #include <sys/sysinfo.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <string>
 #include <EGL/egl.h>
 
@@ -250,36 +251,75 @@ DECL_HOOK(RwTexture *, CTxdStore_TxdStoreFindCB, const char *texture_name)
 	return nullptr;
 }
 
-// Diagnostico: registra qual banco de texturas o jogo carrega, o formato pedido
-// e quais arquivos existem em texdb/<nome>/ (com tamanhos). Ajuda a achar
-// arquivos faltando ou de outra versao sem depender de capturas de tela.
+// ---------------------------------------------------------------------------
+// texdb: o gamedata.zip traz cada banco em UM so formato (ex.: samp/mobile/txd
+// so em .dxt, menu/player so em .pvr). Se o jogo (ou o launcher) pedir um
+// formato que nao existe em disco, as tabelas .toc/.tmb ficam nulas e o
+// SortEntries quebra com SIGSEGV. Aqui o formato pedido e trocado pelo que
+// realmente existe em texdb/<nome>/, e tudo e registrado no log.
+// ---------------------------------------------------------------------------
+static bool texdbHasFormat(const char *name, const char *ext)
+{
+	std::string base = std::string(Client::gameDir()) + "texdb/" + name + "/" + name + "." + ext;
+	return access((base + ".dat").c_str(), R_OK) == 0 &&
+	       access((base + ".tmb").c_str(), R_OK) == 0 &&
+	       access((base + ".toc").c_str(), R_OK) == 0;
+}
+
 DECL_HOOK(void *, TextureDatabaseRuntime_Load, const char *name, bool fullyLoad, int format)
 {
-	if (name)
+	if (!name)
 	{
-		static const char *formats[] = {"unc", "dxt", "pvr", "etc"};
-		static const char *exts[] = {"dat", "tmb", "toc"};
+		return TextureDatabaseRuntime_Load(name, fullyLoad, format);
+	}
 
-		spdlog::info("TexDB Load: name={} format={}", name, format);
+	struct FormatInfo
+	{
+		const char *ext;
+		int id;
+	};
+	static const FormatInfo formats[] = {
+		{"dxt", sa::DF_DXT},
+		{"etc", sa::DF_ETC},
+		{"pvr", sa::DF_PVR},
+	};
 
-		for (const char *fmt : formats)
+	std::string present;
+	int firstPresent = -1;
+	int requestedPresent = 0;
+	for (const auto &f : formats)
+	{
+		bool has = texdbHasFormat(name, f.ext);
+		if (has)
 		{
-			std::string line = std::string("  ") + fmt + ":";
-			for (const char *ext : exts)
+			present += std::string(" ") + f.ext;
+			if (firstPresent < 0)
 			{
-				std::string path = std::string(Client::gameDir()) + "texdb/" + name + "/" + name + "." + fmt + "." + ext;
-				struct stat st;
-				if (stat(path.c_str(), &st) == 0)
-				{
-					line += std::string(" ") + ext + "=" + std::to_string((long long)st.st_size);
-				}
-				else
-				{
-					line += std::string(" ") + ext + "=MISSING";
-				}
+				firstPresent = f.id;
 			}
-			spdlog::info("{}", line);
+			if (f.id == format)
+			{
+				requestedPresent = 1;
+			}
 		}
+	}
+
+	spdlog::info("TexDB Load: name={} requested_format={} present_on_disk:{}", name, format, present.empty() ? " NONE" : present);
+
+	if (present.empty())
+	{
+		spdlog::error("TexDB: no .dat/.tmb/.toc set found for '{}' in {}texdb/{}/ - load will crash", name, Client::gameDir(), name);
+	}
+	else if (!requestedPresent && format != sa::DF_Default)
+	{
+		spdlog::warn("TexDB: '{}' requested format {} not on disk, using format {}", name, format, firstPresent);
+		format = firstPresent;
+	}
+	else if (format == sa::DF_Default && present.find("dxt") == std::string::npos)
+	{
+		// pedido "default": so intervem se o formato padrao (dxt) nao existe em disco
+		spdlog::warn("TexDB: '{}' has no dxt set, using format {}", name, firstPresent);
+		format = firstPresent;
 	}
 
 	return TextureDatabaseRuntime_Load(name, fullyLoad, format);
@@ -287,6 +327,7 @@ DECL_HOOK(void *, TextureDatabaseRuntime_Load, const char *name, bool fullyLoad,
 
 DECL_HOOK(int, CGame_InitialiseRenderWare)
 {
+	spdlog::info("BUILD MARKER: texdb-fallback-v3");
 	spdlog::info("Initializing samp texture database...");
 
 	int result = CGame_InitialiseRenderWare();
