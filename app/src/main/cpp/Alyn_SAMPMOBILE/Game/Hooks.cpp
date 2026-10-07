@@ -327,6 +327,17 @@ DECL_HOOK(void *, TextureDatabaseRuntime_Load, const char *name, bool fullyLoad,
 		format = firstPresent;
 	}
 
+	// arm64 (Android 16+): DXT texture buffers are mapped read-only by the engine.
+	// RLEDecompress then tries to write into them → SEGV_ACCERR at spawn time when
+	// CTouchInterface::CreateAll() triggers GetRWTexture() → LoadFullTexture().
+	// Force mobile and txd to ETC which uses a writable decode path instead.
+	if ((strcmp(name, "mobile") == 0 || strcmp(name, "txd") == 0) &&
+	    texdbHasFormat(name, "etc"))
+	{
+		spdlog::info("TexDB: '{}' forced to ETC (arm64 read-only DXT workaround)", name);
+		format = sa::DF_ETC;
+	}
+
 	void *db = TextureDatabaseRuntime_Load(name, fullyLoad, format);
 	{
 		std::lock_guard<std::mutex> lock(g_texdbNamesMutex);
