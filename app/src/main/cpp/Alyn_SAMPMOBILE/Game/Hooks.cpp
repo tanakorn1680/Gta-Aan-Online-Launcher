@@ -1,4 +1,6 @@
 #include <sys/sysinfo.h>
+#include <sys/stat.h>
+#include <string>
 #include <EGL/egl.h>
 
 #include "Game.h"
@@ -246,6 +248,41 @@ DECL_HOOK(RwTexture *, CTxdStore_TxdStoreFindCB, const char *texture_name)
 	}
 
 	return nullptr;
+}
+
+// Diagnostico: registra qual banco de texturas o jogo carrega, o formato pedido
+// e quais arquivos existem em texdb/<nome>/ (com tamanhos). Ajuda a achar
+// arquivos faltando ou de outra versao sem depender de capturas de tela.
+DECL_HOOK(void *, TextureDatabaseRuntime_Load, const char *name, bool fullyLoad, int format)
+{
+	if (name)
+	{
+		static const char *formats[] = {"unc", "dxt", "pvr", "etc"};
+		static const char *exts[] = {"dat", "tmb", "toc"};
+
+		spdlog::info("TexDB Load: name={} format={}", name, format);
+
+		for (const char *fmt : formats)
+		{
+			std::string line = std::string("  ") + fmt + ":";
+			for (const char *ext : exts)
+			{
+				std::string path = std::string(Client::gameDir()) + "texdb/" + name + "/" + name + "." + fmt + "." + ext;
+				struct stat st;
+				if (stat(path.c_str(), &st) == 0)
+				{
+					line += std::string(" ") + ext + "=" + std::to_string((long long)st.st_size);
+				}
+				else
+				{
+					line += std::string(" ") + ext + "=MISSING";
+				}
+			}
+			spdlog::info("{}", line);
+		}
+	}
+
+	return TextureDatabaseRuntime_Load(name, fullyLoad, format);
 }
 
 DECL_HOOK(int, CGame_InitialiseRenderWare)
@@ -949,6 +986,7 @@ void Hooks::install()
 	HOOK("_Z16RwTextureDestroyP9RwTexture", _RwTextureDestroy);
 	HOOK("_Z15RwFrameAddChildP7RwFrameS0_", RwFrameAddChild);
 	HOOK("_Z13RLEDecompressPhjPKhjj", RLEDecompress);
+	HOOK("_ZN22TextureDatabaseRuntime4LoadEPKcb21TextureDatabaseFormat", TextureDatabaseRuntime_Load);
 	HOOK("_Z23RwResourcesFreeResEntryP10RwResEntry", RwResourcesFreeResEntry);
 	HOOK("_ZN22TextureDatabaseRuntime8GetEntryEPKcRb", TextureDatabaseRuntime_GetEntry);
 	HOOK("_ZN10CPlayerPed29GetPlayerInfoForThisPlayerPedEv", GetPlayerInfoForThisPlayerPed);
