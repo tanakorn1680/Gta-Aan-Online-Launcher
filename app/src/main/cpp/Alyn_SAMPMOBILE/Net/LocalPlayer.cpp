@@ -507,10 +507,13 @@ bool CLocalPlayer::Spawn()
 
 	spdlog::info("Spawn localplayer");
 
-	if (!g_saSym->GetSymbol("_ZZ20Menu_SwitchOffToGamevE12bInitWidgets")) {
-		spdlog::info("Widgets not inited");
-		Memory::callFunction("_Z20Menu_SwitchOffToGamev");
-	}
+	// Menu_SwitchOffToGame is intentionally NOT called here.
+	// On arm64 / Android 16+, CTouchInterface::CreateAll() (called inside
+	// Menu_SwitchOffToGame) writes decompressed texture data into buffers that
+	// the engine has already mapped read-only, triggering SEGV_ACCERR every
+	// time the player spawns.  Widget initialisation is performed once at
+	// startup; re-calling it on every spawn is both unnecessary and fatal.
+	spdlog::info("Spawn localplayer: skipping Menu_SwitchOffToGame (arm64 SEGV_ACCERR fix)");
 
 	pGame->GetCamera()->Restore();
 	pGame->GetCamera()->SetBehindPlayer();
