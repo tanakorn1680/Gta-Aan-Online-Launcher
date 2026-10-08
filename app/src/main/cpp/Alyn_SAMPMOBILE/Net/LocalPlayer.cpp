@@ -3,6 +3,8 @@
 #include "../Net/NetGame.h"
 #include "../UI/UI.h"
 
+extern bool g_pendingWidgetInit;
+
 extern UI* pUI;
 extern Game* pGame;
 extern NetGame* pNetGame;
@@ -507,13 +509,9 @@ bool CLocalPlayer::Spawn()
 
 	spdlog::info("Spawn localplayer");
 
-	// Menu_SwitchOffToGame is intentionally NOT called here.
-	// On arm64 / Android 16+, CTouchInterface::CreateAll() (called inside
-	// Menu_SwitchOffToGame) writes decompressed texture data into buffers that
-	// the engine has already mapped read-only, triggering SEGV_ACCERR every
-	// time the player spawns.  Widget initialisation is performed once at
-	// startup; re-calling it on every spawn is both unnecessary and fatal.
-	spdlog::info("Spawn localplayer: skipping Menu_SwitchOffToGame (arm64 SEGV_ACCERR fix)");
+	// Nao chamar Menu_SwitchOffToGame aqui: Spawn roda dentro de Render2dStuff
+	// (fase de render). A criacao dos widgets e adiada para CGame::Process.
+	g_pendingWidgetInit = true;
 
 	pGame->GetCamera()->Restore();
 	pGame->GetCamera()->SetBehindPlayer();
