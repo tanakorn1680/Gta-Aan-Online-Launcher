@@ -513,7 +513,17 @@ bool CLocalPlayer::Spawn()
 	// the engine has already mapped read-only, triggering SEGV_ACCERR every
 	// time the player spawns.  Widget initialisation is performed once at
 	// startup; re-calling it on every spawn is both unnecessary and fatal.
-	spdlog::info("Spawn localplayer: skipping Menu_SwitchOffToGame (arm64 SEGV_ACCERR fix)");
+	// Touch widgets (CTouchInterface::CreateAll) are only built by Menu_SwitchOffToGame.
+	// In online mode nothing else calls it (the StartGameScreen call is NOP-ed in Patches.cpp),
+	// so skipping it here means NO on-screen controls. Run it ONCE (first spawn only).
+	// mobile/txd texdb are forced to ETC in Hooks.cpp, which avoids the old read-only DXT crash.
+	static bool s_touchWidgetsInited = false;
+	if (!s_touchWidgetsInited) {
+		s_touchWidgetsInited = true;
+		spdlog::info("Spawn localplayer: calling Menu_SwitchOffToGame once (create touch widgets)");
+		Memory::callFunction("_Z20Menu_SwitchOffToGamev");
+		spdlog::info("Spawn localplayer: Menu_SwitchOffToGame returned OK");
+	}
 
 	pGame->GetCamera()->Restore();
 	pGame->GetCamera()->SetBehindPlayer();
