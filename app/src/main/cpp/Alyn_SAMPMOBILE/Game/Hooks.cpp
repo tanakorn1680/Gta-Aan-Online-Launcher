@@ -366,7 +366,7 @@ DECL_HOOK(void *, TextureDatabaseRuntime_LoadFullTexture, void *self, unsigned i
 
 DECL_HOOK(int, CGame_InitialiseRenderWare)
 {
-	spdlog::info("BUILD MARKER: texdb-diag-v4");
+	spdlog::info("BUILD MARKER: widgets-defer-v5");
 	spdlog::info("Initializing samp texture database...");
 
 	int result = CGame_InitialiseRenderWare();
@@ -811,9 +811,26 @@ DECL_HOOK(int, TextureDatabaseRuntime_GetEntry, uintptr_t _this, const char *a2,
 	return TextureDatabaseRuntime_GetEntry(_this, a2, a3);
 }
 
+// Definido aqui e ligado por LocalPlayer.cpp (Spawn).
+// Menu_SwitchOffToGame cria os widgets de toque (CTouchInterface::CreateAll),
+// que carrega texturas. Chamado de dentro de Render2dStuff (fase de render, via
+// Client::process -> NetGame::Process -> Spawn) o jogo quebrava; aqui roda na
+// fase de update (CGame::Process), a mesma de quando o menu de pausa fecha.
+bool g_pendingWidgetInit = false;
+
 DECL_HOOK(void, CGame_Process)
 {
 	CGame_Process();
+
+	if (g_pendingWidgetInit)
+	{
+		g_pendingWidgetInit = false;
+		if (!g_saSym->GetSymbol("_ZZ20Menu_SwitchOffToGamevE12bInitWidgets"))
+		{
+			spdlog::info("Widgets not inited - creating now (deferred to CGame::Process)");
+			Memory::callFunction("_Z20Menu_SwitchOffToGamev");
+		}
+	}
 
 	if (pNetGame)
 	{
