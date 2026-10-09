@@ -86,7 +86,7 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/samp_version_selector"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_alignParentEnd="true"
@@ -139,7 +139,7 @@
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/game_version_selector"
-                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                         android:layout_width="wrap_content"
                         android:layout_height="match_parent"
                         android:layout_alignParentEnd="true"
@@ -909,7 +909,7 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/restore_button"
-                        style="@style/Widget.Material3.Button"
+                        style="@style/Widget.MaterialComponents.Button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
