@@ -13,6 +13,7 @@ extern int g_iLagCompensationMode;
 
 PAD_KEYS LocalPlayerKeys;
 PAD_KEYS RemotePlayerKeys[PLAYER_PED_SLOTS];
+bool g_bGuardButtonHeld = false; // on-screen GUARD button (UI/SAMPWidgets/ButtonPanel.cpp)
 
 sa::CPed* dwCurPlayerActor = nullptr;
 uint8_t byteInternalPlayer = 0;
@@ -1458,7 +1459,8 @@ DECL_HOOK(uint32_t, CPad_GetEnterTargeting, uintptr_t _this)
 		return 0;
 	}
 	else {
-		return CPad_GetEnterTargeting(_this);
+		uint32_t dwResult = CPad_GetEnterTargeting(_this);
+		return g_bGuardButtonHeld ? 1 : dwResult;
 	}
 }
 

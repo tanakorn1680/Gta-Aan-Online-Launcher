@@ -8,6 +8,24 @@ extern UI* pUI;
 extern Game* pGame;
 extern NetGame* pNetGame;
 
+// Set by GuardButton, read by the CPad_GetEnterTargeting hook (Game/Pad.cpp).
+extern bool g_bGuardButtonHeld;
+
+// Round dark button with a white ring and a text label. No texture needed,
+// so it always shows even if the samp texdb is missing an icon.
+static void DrawRoundActionButton(ImGuiRenderer* renderer, const ImVec2& pos, const ImVec2& size, const std::string& label, bool pressed)
+{
+	ImVec2 center = pos + size * 0.5f;
+	float radius = (size.x < size.y ? size.x : size.y) * 0.5f;
+
+	renderer->drawCircleFilled(center, radius, pressed ? ImColor(255, 255, 255, 200) : ImColor(0, 0, 0, 150));
+	renderer->drawArc(center, radius - 2.0f, 4.0f, ImColor(255, 255, 255, 230), 0.0f, 360.0f);
+
+	float fontSize = radius * 0.45f;
+	ImVec2 textSize = renderer->calculateTextSize(label, fontSize);
+	renderer->drawText(center - textSize * 0.5f, pressed ? ImColor(0, 0, 0) : ImColor(255, 255, 255), label, true, fontSize);
+}
+
 ButtonPanel::ButtonPanel()
 		: Layout(Orientation::HORIZONTAL)
 {
@@ -185,7 +203,7 @@ void ButtonPanel::PassengerButton::draw(ImGuiRenderer* renderer)
 			if (ClosetVehicleID < MAX_VEHICLES && pVehiclePool->GetSlotState(ClosetVehicleID)) {
 				CVehicle* pVehicle = pVehiclePool->GetAt(ClosetVehicleID);
 				if (pVehicle && pVehicle->GetDistanceFromLocalPlayerPed() < 4.0f) {
-					Image::draw(renderer);
+					DrawRoundActionButton(renderer, absolutePosition(), size(), "RIDE", focused());
 				}
 			}
 		}
@@ -197,4 +215,33 @@ void ButtonPanel::PassengerButton::touchPopEvent()
 	if (pNetGame && pNetGame->GetPlayerPool() && pNetGame->GetPlayerPool()->GetLocalPlayer()) {
 		pNetGame->GetPlayerPool()->GetLocalPlayer()->EnterVehicleAsPassenger();
 	}
+}
+
+/* GuardButton */
+
+ButtonPanel::GuardButton::GuardButton()
+{
+
+}
+
+void ButtonPanel::GuardButton::draw(ImGuiRenderer* renderer)
+{
+	bool show = false;
+
+	if (pNetGame) {
+		CPlayerPed* pPlayerPed = pGame->FindPlayerPed();
+		show = pPlayerPed && !pPlayerPed->IsDead() && !pPlayerPed->IsInVehicle() && !pPlayerPed->IsAPassenger();
+	}
+
+	if (!show) {
+		g_bGuardButtonHeld = false;
+		return;
+	}
+
+	DrawRoundActionButton(renderer, absolutePosition(), size(), "GUARD", focused());
+}
+
+void ButtonPanel::GuardButton::focuseEvent(bool focus)
+{
+	g_bGuardButtonHeld = focus;
 }
