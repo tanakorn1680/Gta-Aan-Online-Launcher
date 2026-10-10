@@ -53,6 +53,13 @@ import com.gtasan.online.ui.fragment.SupportPageFragment;
 public class Utils {
     public static String copyright = "Copyright © Gta San Online";
     public static String web = "https://raw.githubusercontent.com/tanakorn1680/Gta-Aan-Online-Launcher/main/remote/";
+
+    // Se false (padrao atual), a SplashActivity nunca mostra o dialogo de
+    // "atualizacao do aplicativo obrigatoria" (GameStatus.GameUpdateRequired),
+    // mesmo que o update.json remoto diga que ha uma versao mais nova.
+    // A checagem de GameFilesUpdateRequired (dados do jogo) nao e afetada por isto.
+    // Mude para true quando quiser voltar a forcar a atualizacao do app.
+    public static boolean ENFORCE_APP_UPDATE = false;
     public static String github = "https://github.com/east9-777";
     public static String update = web + "update.json";
     // TODO: coloque aqui o link de convite real do seu servidor Discord (ex: https://discord.gg/xxxxxxx)

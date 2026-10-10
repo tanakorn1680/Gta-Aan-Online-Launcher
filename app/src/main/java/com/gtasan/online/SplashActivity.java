@@ -276,7 +276,7 @@ public class SplashActivity extends AppCompatActivity implements GLSurfaceView.R
                 // com "App server is down" sempre que essa segunda chamada falhava por qualquer
                 // motivo, mesmo com o resto funcionando.
                 {
-                    if (false && gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
+                    if (Utils.ENFORCE_APP_UPDATE && gameStatus == UpdateActivity.GameStatus.GameUpdateRequired && !Utils.isTester(SplashActivity.this)) {
                         try {
                             new AlertDialog.Builder(SplashActivity.this)
                                     .setTitle("Atualização:").setMessage("Atualização do aplicativo necessária! Toque em 'Atualizar' e baixe a versão mais recente pelo site.")
