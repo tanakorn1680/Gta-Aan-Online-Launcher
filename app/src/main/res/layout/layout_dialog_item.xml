@@ -9,7 +9,7 @@
         android:id="@+id/item_bg"
         android:layout_width="0.0dip"
         android:layout_height="0.0dip"
-        android:background="#503030"
+        android:background="@color/orange_dark"
         android:scaleType="fitXY"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

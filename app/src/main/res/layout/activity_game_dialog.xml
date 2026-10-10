@@ -75,7 +75,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Text\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText\nText"
-                        android:textColor="#a9c4e4"
+                        android:textColor="@color/orange"
                         android:textSize="28.0px"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -156,7 +156,7 @@
                         android:paddingEnd="20.0px"
                         android:singleLine="true"
                         android:text="Field1"
-                        android:textColor="#a9c4e4"
+                        android:textColor="@color/orange"
                         android:textSize="32.0px"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -171,7 +171,7 @@
                         android:paddingEnd="20.0px"
                         android:singleLine="true"
                         android:text="Field2"
-                        android:textColor="#a9c4e4"
+                        android:textColor="@color/orange"
                         android:textSize="32.0px"
                         app:layout_constraintStart_toEndOf="@+id/dialog_field1"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -186,7 +186,7 @@
                         android:paddingEnd="20.0px"
                         android:singleLine="true"
                         android:text="Field2"
-                        android:textColor="#a9c4e4"
+                        android:textColor="@color/orange"
                         android:textSize="32.0px"
                         app:layout_constraintStart_toEndOf="@+id/dialog_field2"
                         app:layout_constraintTop_toTopOf="parent" />
@@ -201,7 +201,7 @@
                         android:paddingEnd="20.0px"
                         android:singleLine="true"
                         android:text="Field4"
-                        android:textColor="#a9c4e4"
+                        android:textColor="@color/orange"
                         android:textSize="32.0px"
                         app:layout_constraintStart_toEndOf="@+id/dialog_field3"
                         app:layout_constraintTop_toTopOf="parent" />

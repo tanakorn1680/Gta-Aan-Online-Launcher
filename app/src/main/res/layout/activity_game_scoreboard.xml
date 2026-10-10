@@ -69,7 +69,7 @@
                 android:layout_marginStart="@dimen/_20sdp"
                 android:layout_weight="1"
                 android:text="id"
-                android:textColor="#a9c4e4"
+                android:textColor="@color/orange"
                 android:textSize="@dimen/_10sdp"
                 android:textStyle="bold" />
 
@@ -78,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="5"
                 android:text="name"
-                android:textColor="#a9c4e4"
+                android:textColor="@color/orange"
                 android:textSize="@dimen/_10sdp"
                 android:textStyle="bold" />
 
@@ -87,7 +87,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="3"
                 android:text="score"
-                android:textColor="#a9c4e4"
+                android:textColor="@color/orange"
                 android:textSize="@dimen/_10sdp"
                 android:textStyle="bold" />
 
@@ -96,7 +96,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
                 android:text="ping"
-                android:textColor="#a9c4e4"
+                android:textColor="@color/orange"
                 android:textSize="@dimen/_10sdp"
                 android:textStyle="bold" />
         </LinearLayout>
