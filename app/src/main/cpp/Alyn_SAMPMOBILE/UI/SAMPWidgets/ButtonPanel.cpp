@@ -1,4 +1,7 @@
 #include "../UI.h"
+#include "../../AssetImageLoader.h"
+#include "../../Game/Util.h"
+#include "spdlog/spdlog.h"
 #include "../../Game/Game.h"
 #include "../../Net/NetGame.h"
 
@@ -11,19 +14,38 @@ extern NetGame* pNetGame;
 // Set by GuardButton, read by the CPad_GetEnterTargeting hook (Game/Pad.cpp).
 extern bool g_bGuardButtonHeld;
 
-// Round dark button with a white ring and a text label. No texture needed,
-// so it always shows even if the samp texdb is missing an icon.
-static void DrawRoundActionButton(ImGuiRenderer* renderer, const ImVec2& pos, const ImVec2& size, const std::string& label, bool pressed)
+// Round dark button with a white ring. Draws an icon PNG from the APK assets
+// (app/src/main/assets/hud/*.png, same loader as StatusHUD); if the icon can't
+// be loaded it falls back to a text label so the button is never invisible.
+static void DrawRoundActionButton(ImGuiRenderer* renderer, const ImVec2& pos, const ImVec2& size, const std::string& label, void* icon, bool pressed)
 {
 	ImVec2 center = pos + size * 0.5f;
 	float radius = (size.x < size.y ? size.x : size.y) * 0.5f;
 
-	renderer->drawCircleFilled(center, radius, pressed ? ImColor(255, 255, 255, 200) : ImColor(0, 0, 0, 150));
+	renderer->drawCircleFilled(center, radius, pressed ? ImColor(110, 110, 110, 215) : ImColor(0, 0, 0, 150));
 	renderer->drawArc(center, radius - 2.0f, 4.0f, ImColor(255, 255, 255, 230), 0.0f, 360.0f);
 
-	float fontSize = radius * 0.45f;
-	ImVec2 textSize = renderer->calculateTextSize(label, fontSize);
-	renderer->drawText(center - textSize * 0.5f, pressed ? ImColor(0, 0, 0) : ImColor(255, 255, 255), label, true, fontSize);
+	if (icon) {
+		float iconSize = radius * 1.25f;
+		ImVec2 half(iconSize * 0.5f, iconSize * 0.5f);
+		renderer->drawImage(center - half, center + half, (ImTextureID) icon);
+	}
+	else {
+		float fontSize = radius * 0.45f;
+		ImVec2 textSize = renderer->calculateTextSize(label, fontSize);
+		renderer->drawText(center - textSize * 0.5f, ImColor(255, 255, 255), label, true, fontSize);
+	}
+}
+
+// Lazy load (render thread). LoadIconTextureFromAsset caches by path; we only
+// retry a few times in case the AssetManager isn't registered yet.
+static void* LoadActionIcon(const char* path, void*& cache, int& tries)
+{
+	if (!cache && tries < 5) {
+		tries++;
+		cache = LoadIconTextureFromAsset(path);
+	}
+	return cache;
 }
 
 ButtonPanel::ButtonPanel()
@@ -203,7 +225,9 @@ void ButtonPanel::PassengerButton::draw(ImGuiRenderer* renderer)
 			if (ClosetVehicleID < MAX_VEHICLES && pVehiclePool->GetSlotState(ClosetVehicleID)) {
 				CVehicle* pVehicle = pVehiclePool->GetAt(ClosetVehicleID);
 				if (pVehicle && pVehicle->GetDistanceFromLocalPlayerPed() < 4.0f) {
-					DrawRoundActionButton(renderer, absolutePosition(), size(), "RIDE", focused());
+					static void* s_icon = nullptr;
+					static int s_tries = 0;
+					DrawRoundActionButton(renderer, absolutePosition(), size(), "RIDE", LoadActionIcon("hud/btn_door.png", s_icon, s_tries), focused());
 				}
 			}
 		}
@@ -212,6 +236,14 @@ void ButtonPanel::PassengerButton::draw(ImGuiRenderer* renderer)
 
 void ButtonPanel::PassengerButton::touchPopEvent()
 {
+	// Cooldown: spamming enter/exit can desync the ped task state and crash the game.
+	static uint32_t s_lastRide = 0;
+	uint32_t now = GetTickCount();
+	if (s_lastRide != 0 && now - s_lastRide < 1000) {
+		return;
+	}
+	s_lastRide = now;
+
 	if (pNetGame && pNetGame->GetPlayerPool() && pNetGame->GetPlayerPool()->GetLocalPlayer()) {
 		pNetGame->GetPlayerPool()->GetLocalPlayer()->EnterVehicleAsPassenger();
 	}
@@ -238,10 +270,15 @@ void ButtonPanel::GuardButton::draw(ImGuiRenderer* renderer)
 		return;
 	}
 
-	DrawRoundActionButton(renderer, absolutePosition(), size(), "GUARD", focused());
+	static void* s_icon = nullptr;
+	static int s_tries = 0;
+	DrawRoundActionButton(renderer, absolutePosition(), size(), "GUARD", LoadActionIcon("hud/btn_guard.png", s_icon, s_tries), focused());
 }
 
 void ButtonPanel::GuardButton::focuseEvent(bool focus)
 {
+	if (focus != g_bGuardButtonHeld) {
+		spdlog::info("Guard button {}", focus ? "pressed" : "released");
+	}
 	g_bGuardButtonHeld = focus;
 }

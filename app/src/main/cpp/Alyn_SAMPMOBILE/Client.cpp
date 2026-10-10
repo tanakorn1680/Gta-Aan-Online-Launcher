@@ -1,3 +1,4 @@
+#include <exception>
 #include "Client.h"
 #include "BackTrace.h"
 #include "Settings.h"
@@ -56,6 +57,8 @@ void init_logger(const std::string& gameDir)
 
 		// Set log level and pattern
 		logger->set_level(spdlog::level::info);
+		// Flush every line so the last messages before a crash are not lost in the stdio buffer.
+		logger->flush_on(spdlog::level::info);
 		logger->set_pattern("[%d-%m-%Y %H:%M:%S] [%^%l%$] %v");
 
 		// Set as default logger
@@ -84,13 +87,34 @@ void Client::initialize(const std::string& gameDir, bool offlineMode)
 	sig_action.sa_sigaction = [](int signal, siginfo_t* info, void* ctx) {
 		dump_register(signal, info, ctx);
 		dump_stack(2);
-		exit(signal);
+		spdlog::default_logger()->flush();
+		_exit(signal);
 	};
 	sigemptyset(&sig_action.sa_mask);
 	sig_action.sa_flags = SA_SIGINFO;
-	sigaction(SIGSEGV, &sig_action, nullptr);
+	for (int sig : {SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL}) {
+		sigaction(sig, &sig_action, nullptr);
+	}
 
 	init_logger(gameDir);
+
+	// An uncaught C++ exception ends in abort(); log what it was before dying.
+	std::set_terminate([]() {
+		spdlog::error("std::terminate called");
+		try {
+			if (auto ex = std::current_exception()) {
+				std::rethrow_exception(ex);
+			}
+		}
+		catch (const std::exception& e) {
+			spdlog::error("Uncaught exception: {}", e.what());
+		}
+		catch (...) {
+			spdlog::error("Uncaught exception: unknown type");
+		}
+		spdlog::default_logger()->flush();
+		abort();
+	});
 
 	spdlog::info("Initializing Alyn_SAMPMOBILE client...");
 
