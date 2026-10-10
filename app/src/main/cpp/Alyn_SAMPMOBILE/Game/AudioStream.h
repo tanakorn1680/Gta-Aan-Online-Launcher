@@ -14,5 +14,8 @@ public:
 	bool Stop(bool bWaitThread);
 
 private:
+	bool InitBass();
+
 	bool m_bInited;
+	bool m_bBassTried;
 };

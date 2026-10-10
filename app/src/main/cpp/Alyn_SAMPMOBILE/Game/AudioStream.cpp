@@ -46,21 +46,25 @@ void* audioStreamThread(void*)
 AudioStream::AudioStream()
 {
 	m_bInited = false;
+	m_bBassTried = false;
 }
 
-bool AudioStream::Initialize()
+// BASS is a second audio engine running next to GTA's OpenAL. It is only needed
+// when the server plays an audio stream, so it is started on first use (Play)
+// instead of at game start. No BASS_Free here: voice chat inits BASS itself.
+bool AudioStream::InitBass()
 {
-	spdlog::info("AudioStream::Initialize()");
-
-	bassStream = 0;
-
 	if (!BASS_Init || !BASS_Free) {
 		spdlog::error("AudioStream disabled: BASS library is unavailable");
 		return false;
 	}
 
-	BASS_Free();
-	if (!BASS_Init(-1, 44100, 0)) return false;
+	if (!BASS_Init(-1, 44100, 0)) {
+		if (BASS_ErrorGetCode() != 14) { // 14 = BASS_ERROR_ALREADY (already initialised, fine)
+			spdlog::error("AudioStream: BASS_Init failed (code {})", BASS_ErrorGetCode());
+			return false;
+		}
+	}
 
 	BASS_SetConfigPtr(16, "SA-MP/0.3");
 	//BASS_SetConfig(5, ) volume
@@ -68,6 +72,15 @@ bool AudioStream::Initialize()
 	BASS_SetConfig(11, 10000);        // BASS_CONFIG_NET_TIMEOUT
 
 	m_bInited = true;
+	spdlog::info("AudioStream: BASS initialised");
+	return true;
+}
+
+bool AudioStream::Initialize()
+{
+	spdlog::info("AudioStream::Initialize(): BASS init deferred until the first audio stream");
+
+	bassStream = 0;
 	return true;
 }
 
@@ -88,7 +101,11 @@ bool AudioStream::Play(const char* szUrl, float fX, float fY, float fZ, float fR
 {
 	spdlog::info("Play: {}", szUrl);
 
-	if (!m_bInited) return false;
+	if (!m_bInited) {
+		if (m_bBassTried) return false;
+		m_bBassTried = true;
+		if (!InitBass()) return false;
+	}
 	Stop(true);
 
 	if (bassStream) {
